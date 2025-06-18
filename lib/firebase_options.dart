@@ -83,4 +83,5 @@ class DefaultFirebaseOptions {
     authDomain: 'pokeproject-pokeapi.firebaseapp.com',
     storageBucket: 'pokeproject-pokeapi.firebasestorage.app',
   );
+
 }
