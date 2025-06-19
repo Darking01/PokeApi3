@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
-import 'login.dart';
+import '../services/poke_services.dart'; // Importa aquí tu función random
+
 import 'inicio.dart';
+import 'login.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -34,10 +36,11 @@ class _RegisterPageState extends State<RegisterPage> {
       // Actualizar nombre de usuario en Firebase Auth
       await credential.user?.updateDisplayName(_usernameController.text.trim());
 
-      // Guardar datos en Firestore
+      // Guardar datos en Firestore con avatar Pokémon aleatorio
       await _userService.saveUserData(
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
+        photoUrl: getRandomPokemonImageUrl(), // Usa la función de poke_services
         favoritosCount: 0,
       );
 

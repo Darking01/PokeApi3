@@ -1,11 +1,17 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
 import 'perfil.dart';
+import 'login.dart';
+
+String getRandomPokemonImageUrl() {
+  final random = Random();
+  final pokeId = random.nextInt(898) + 1;
+  return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$pokeId.png';
+}
 
 class AccountOptionPage extends StatefulWidget {
   final int favoritosCount;
@@ -24,7 +30,6 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
 
   User? user = FirebaseAuth.instance.currentUser;
   bool _loading = false;
-  File? _imageFile;
   String? _photoUrl;
 
   final UserFirestoreService _userService = UserFirestoreService();
@@ -46,36 +51,16 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
     }
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() {
-        _imageFile = File(picked.path);
-      });
-    }
-  }
-
-  Future<String?> _uploadImage(File image) async {
-    final userId = user?.uid;
-    if (userId == null) return null;
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('profile_images')
-        .child('$userId.jpg');
-    await ref.putFile(image);
-    return await ref.getDownloadURL();
+  void _setRandomPokemonAvatar() {
+    setState(() {
+      _photoUrl = getRandomPokemonImageUrl();
+    });
   }
 
   Future<void> _saveChanges() async {
     setState(() => _loading = true);
     try {
-      String? photoUrl = _photoUrl;
-
-      // Subir imagen si hay una nueva seleccionada
-      if (_imageFile != null) {
-        photoUrl = await _uploadImage(_imageFile!);
-      }
+      bool passwordChanged = false;
 
       // Actualizar nombre de usuario en Auth y Firestore
       if (_nameController.text.trim().isNotEmpty &&
@@ -89,76 +74,121 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
       if (_emailController.text.trim().isNotEmpty &&
           _emailController.text.trim() != user?.email) {
         if (_currentPassController.text.isEmpty) {
-          throw Exception(
-            'Debes ingresar tu contraseña actual para cambiar el correo.',
+          setState(() => _loading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Debes ingresar tu contraseña actual para cambiar el correo.',
+              ),
+            ),
           );
+          return;
         }
-        await user?.reauthenticateWithCredential(
-          EmailAuthProvider.credential(
-            email: user!.email!,
-            password: _currentPassController.text,
-          ),
-        );
+        try {
+          await user?.reauthenticateWithCredential(
+            EmailAuthProvider.credential(
+              email: user!.email!,
+              password: _currentPassController.text,
+            ),
+          );
+        } on FirebaseAuthException catch (e) {
+          setState(() => _loading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error de autenticación: ${e.message}')),
+          );
+          return;
+        }
         await user?.updateEmail(_emailController.text.trim());
       }
 
       // Cambiar contraseña
       if (_newPassController.text.isNotEmpty) {
         if (_currentPassController.text.isEmpty) {
-          throw Exception(
-            'Debes ingresar tu contraseña actual para cambiar la contraseña.',
+          setState(() => _loading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Debes ingresar tu contraseña actual para cambiar la contraseña.',
+              ),
+            ),
           );
+          return;
         }
-        await user?.reauthenticateWithCredential(
-          EmailAuthProvider.credential(
-            email: user!.email!,
-            password: _currentPassController.text,
-          ),
-        );
-        await user?.updatePassword(_newPassController.text);
+        try {
+          await user?.reauthenticateWithCredential(
+            EmailAuthProvider.credential(
+              email: user!.email!,
+              password: _currentPassController.text,
+            ),
+          );
+        } on FirebaseAuthException catch (e) {
+          setState(() => _loading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error de autenticación: ${e.message}')),
+          );
+          return;
+        }
+        try {
+          await user?.updatePassword(_newPassController.text);
+          passwordChanged = true;
+        } on FirebaseAuthException catch (e) {
+          setState(() => _loading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al actualizar contraseña: ${e.message}'),
+            ),
+          );
+          return;
+        }
       }
 
       // Actualizar datos en Firestore (nombre, correo, foto)
       await _userService.saveUserData(
         username: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        photoUrl: photoUrl,
+        photoUrl: _photoUrl,
       );
 
       await user?.reload();
       user = FirebaseAuth.instance.currentUser;
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Datos actualizados correctamente')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                PerfilPage(favoritosCount: widget.favoritosCount),
-          ),
-        );
+        setState(() => _loading = false);
+        if (passwordChanged) {
+          await authService.value.signOut();
+          await Future.delayed(const Duration(milliseconds: 200));
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+            );
+          }
+          // No muestres SnackBar aquí, el contexto ya no existe
+          return;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Datos actualizados correctamente')),
+          );
+          Navigator.pop(context, true);
+        }
       }
     } on FirebaseAuthException catch (e) {
+      setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? 'Error al actualizar datos')),
       );
     } catch (e) {
+      setState(() => _loading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
-    } finally {
-      setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayImage = _imageFile != null
-        ? FileImage(_imageFile!)
-        : (_photoUrl != null ? NetworkImage(_photoUrl!) : null)
-              as ImageProvider<Object>?;
+    final displayImage = _photoUrl != null ? NetworkImage(_photoUrl!) : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Actualizar datos')),
@@ -182,9 +212,9 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
                       bottom: 0,
                       right: 4,
                       child: IconButton(
-                        icon: const Icon(Icons.camera_alt, color: Colors.blue),
-                        onPressed: _pickImage,
-                        tooltip: 'Cambiar imagen',
+                        icon: const Icon(Icons.casino, color: Colors.blue),
+                        onPressed: _setRandomPokemonAvatar,
+                        tooltip: 'Avatar aleatorio',
                       ),
                     ),
                   ],

@@ -18,24 +18,57 @@ class _InicioPageState extends State<InicioPage>
   late TabController _tabController;
   Set<String> _favoritos = {};
   int _notificaciones = 0;
-  List<Map<String, dynamic>>? _pokemonsCache;
+  List<Map<String, dynamic>> _pokemonsCache = [];
   String _search = '';
   final UserFirestoreService _userService = UserFirestoreService();
+
+  String? _photoUrl;
+  String? _username;
+
+  // Paginación
+  final ScrollController _scrollController = ScrollController();
+  int _currentOffset = 0;
+  final int _pageSize = 20;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadPokemons();
+    _loadMorePokemons();
     _loadFavoritos();
+    _loadProfileData();
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _loadPokemons() async {
-    final pokemons = await PokemonService.fetchPokemons(limit: 151);
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMorePokemons() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+    final pokemons = await PokemonService.fetchPokemons(
+      limit: _pageSize,
+      offset: _currentOffset,
+    );
     if (!mounted) return;
     setState(() {
-      _pokemonsCache = pokemons;
+      _pokemonsCache.addAll(pokemons);
+      _currentOffset += _pageSize;
+      _isLoadingMore = false;
+      if (pokemons.length < _pageSize) _hasMore = false;
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMorePokemons();
+    }
   }
 
   Future<void> _loadFavoritos() async {
@@ -43,6 +76,15 @@ class _InicioPageState extends State<InicioPage>
     if (!mounted) return;
     setState(() {
       _favoritos = favoritos.toSet();
+    });
+  }
+
+  Future<void> _loadProfileData() async {
+    final data = await _userService.getUserData();
+    if (!mounted) return;
+    setState(() {
+      _photoUrl = data?['photoUrl'];
+      _username = data?['username'] ?? '';
     });
   }
 
@@ -70,13 +112,32 @@ class _InicioPageState extends State<InicioPage>
     return Drawer(
       child: ListView(
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.redAccent),
-            child: Center(
-              child: Text(
-                'Menú',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Colors.redAccent),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: _photoUrl != null
+                      ? NetworkImage(_photoUrl!)
+                      : null,
+                  child: _photoUrl == null
+                      ? const Icon(Icons.person, size: 40, color: Colors.white)
+                      : null,
+                  backgroundColor: Colors.white,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _username ?? '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
           ListTile(
@@ -106,7 +167,11 @@ class _InicioPageState extends State<InicioPage>
                   builder: (context) =>
                       PerfilPage(favoritosCount: _favoritos.length),
                 ),
-              );
+              ).then((value) async {
+                await _loadProfileData();
+                if (!mounted) return;
+                setState(() {});
+              });
             },
           ),
           const Divider(),
@@ -178,8 +243,14 @@ class _InicioPageState extends State<InicioPage>
         ),
         // Perfil
         IconButton(
-          icon: const CircleAvatar(
-            backgroundImage: AssetImage('assets/profile.png'),
+          icon: CircleAvatar(
+            backgroundImage: _photoUrl != null
+                ? NetworkImage(_photoUrl!)
+                : null,
+            child: _photoUrl == null
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
+            backgroundColor: Colors.grey[300],
             radius: 16,
           ),
           onPressed: () {
@@ -189,7 +260,11 @@ class _InicioPageState extends State<InicioPage>
                 builder: (context) =>
                     PerfilPage(favoritosCount: _favoritos.length),
               ),
-            );
+            ).then((value) async {
+              await _loadProfileData();
+              if (!mounted) return;
+              setState(() {});
+            });
           },
         ),
         const SizedBox(width: 8),
@@ -198,10 +273,10 @@ class _InicioPageState extends State<InicioPage>
   }
 
   Widget _buildPokemones() {
-    if (_pokemonsCache == null) {
+    if (_pokemonsCache.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    final filtered = _pokemonsCache!
+    final filtered = _pokemonsCache
         .where(
           (p) => p['name'].toString().toLowerCase().contains(
             _search.toLowerCase(),
@@ -223,6 +298,7 @@ class _InicioPageState extends State<InicioPage>
         ),
         Expanded(
           child: GridView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -230,8 +306,11 @@ class _InicioPageState extends State<InicioPage>
               mainAxisSpacing: 16,
               childAspectRatio: 1,
             ),
-            itemCount: filtered.length,
+            itemCount: filtered.length + (_isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
+              if (index >= filtered.length) {
+                return const Center(child: CircularProgressIndicator());
+              }
               final pokemon = filtered[index];
               final isFavorito = _favoritos.contains(pokemon['name']);
               return GestureDetector(
@@ -260,15 +339,19 @@ class _InicioPageState extends State<InicioPage>
                           child: const Text('Atrás'),
                         ),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context); // Cierra el diálogo
-                            Navigator.push(
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
                                     DetallesPage(pokemonName: pokemon['name']),
                               ),
                             );
+                            if (result == true) {
+                              await _loadFavoritos();
+                              setState(() {});
+                            }
                           },
                           child: const Text('Ver estadística'),
                         ),
@@ -336,11 +419,9 @@ class _InicioPageState extends State<InicioPage>
         children: [
           _buildPokemones(),
           FavoritosScreen(
-            favoritos:
-                _pokemonsCache
-                    ?.where((poke) => _favoritos.contains(poke['name']))
-                    .toList() ??
-                [],
+            favoritos: _pokemonsCache
+                .where((poke) => _favoritos.contains(poke['name']))
+                .toList(),
             onRemove: _removeFavorito,
           ),
         ],

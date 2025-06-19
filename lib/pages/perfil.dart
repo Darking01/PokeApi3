@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
 import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
 import 'login.dart';
@@ -17,7 +15,6 @@ class PerfilPage extends StatefulWidget {
 
 class _PerfilPageState extends State<PerfilPage> {
   User? user = FirebaseAuth.instance.currentUser;
-  File? _imageFile;
   bool _loading = false;
 
   String _username = '';
@@ -103,25 +100,6 @@ class _PerfilPageState extends State<PerfilPage> {
                 style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.edit),
-                label: const Text('Actualizar datos'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(180, 48),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AccountOptionPage(favoritosCount: _favoritosCount),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
               Card(
                 margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                 child: ListTile(
@@ -135,6 +113,29 @@ class _PerfilPageState extends State<PerfilPage> {
                     ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.edit),
+                label: const Text('Actualizar datos'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(180, 48),
+                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          AccountOptionPage(favoritosCount: _favoritosCount),
+                    ),
+                  );
+                  if (result == true) {
+                    await _loadUserData();
+                    setState(() {});
+                  }
+                },
               ),
               const SizedBox(height: 24),
               _loading

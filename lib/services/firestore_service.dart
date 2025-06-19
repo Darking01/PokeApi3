@@ -38,7 +38,7 @@ class UserFirestoreService {
     if (user == null) return;
     await _users.doc(user.uid).set({
       'favoritos': favoritos,
-      'favoritosCount': favoritos.length,
+      'favoritosCount': favoritos.length, // <-- ¡Actualiza el contador!
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -51,5 +51,22 @@ class UserFirestoreService {
     final data = doc.data();
     if (data == null || data['favoritos'] == null) return [];
     return List<String>.from(data['favoritos']);
+  }
+
+  // Ejecuta esto una vez en tu app para corregir los datos antiguos
+  Future<void> fixFavoritosCount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final data = doc.data();
+    if (data != null && data['favoritos'] != null) {
+      final favoritos = List<String>.from(data['favoritos']);
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'favoritosCount': favoritos.length},
+      );
+    }
   }
 }
