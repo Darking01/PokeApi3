@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../services/auth_login.dart';
+import '../services/firestore_service.dart';
 import 'perfil.dart';
 
 class AccountOptionPage extends StatefulWidget {
@@ -20,18 +24,60 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
 
   User? user = FirebaseAuth.instance.currentUser;
   bool _loading = false;
+  File? _imageFile;
+  String? _photoUrl;
+
+  final UserFirestoreService _userService = UserFirestoreService();
 
   @override
   void initState() {
     super.initState();
     _nameController.text = user?.displayName ?? '';
     _emailController.text = user?.email ?? '';
+    _loadFirestoreData();
+  }
+
+  Future<void> _loadFirestoreData() async {
+    final data = await _userService.getUserData();
+    if (data != null && data['photoUrl'] != null) {
+      setState(() {
+        _photoUrl = data['photoUrl'];
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _imageFile = File(picked.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadImage(File image) async {
+    final userId = user?.uid;
+    if (userId == null) return null;
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('profile_images')
+        .child('$userId.jpg');
+    await ref.putFile(image);
+    return await ref.getDownloadURL();
   }
 
   Future<void> _saveChanges() async {
     setState(() => _loading = true);
     try {
-      // Actualizar nombre de usuario
+      String? photoUrl = _photoUrl;
+
+      // Subir imagen si hay una nueva seleccionada
+      if (_imageFile != null) {
+        photoUrl = await _uploadImage(_imageFile!);
+      }
+
+      // Actualizar nombre de usuario en Auth y Firestore
       if (_nameController.text.trim().isNotEmpty &&
           _nameController.text.trim() != user?.displayName) {
         await authService.value.updateUsername(
@@ -39,7 +85,7 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
         );
       }
 
-      // Actualizar correo electrónico
+      // Actualizar correo electrónico en Auth y Firestore
       if (_emailController.text.trim().isNotEmpty &&
           _emailController.text.trim() != user?.email) {
         if (_currentPassController.text.isEmpty) {
@@ -72,6 +118,13 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
         await user?.updatePassword(_newPassController.text);
       }
 
+      // Actualizar datos en Firestore (nombre, correo, foto)
+      await _userService.saveUserData(
+        username: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        photoUrl: photoUrl,
+      );
+
       await user?.reload();
       user = FirebaseAuth.instance.currentUser;
 
@@ -102,6 +155,11 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final displayImage = _imageFile != null
+        ? FileImage(_imageFile!)
+        : (_photoUrl != null ? NetworkImage(_photoUrl!) : null)
+              as ImageProvider<Object>?;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Actualizar datos')),
       body: Center(
@@ -110,6 +168,28 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Column(
               children: [
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundImage: displayImage,
+                      child: (displayImage == null)
+                          ? const Icon(Icons.person, size: 60)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.camera_alt, color: Colors.blue),
+                        onPressed: _pickImage,
+                        tooltip: 'Cambiar imagen',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
                 TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(

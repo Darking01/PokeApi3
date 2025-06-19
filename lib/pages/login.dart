@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_login.dart';
+import '../services/firestore_service.dart';
 import 'register.dart';
 import 'inicio.dart';
 
@@ -13,100 +15,147 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _loading = false;
-  String? _error;
+  final _formKey = GlobalKey<FormState>();
+  final UserFirestoreService _userService = UserFirestoreService();
 
-  Future<void> _login() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  void _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+
     try {
-      await _auth.signInWithEmailAndPassword(
+      await authService.value.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const InicioPage()),
-      );
+
+      // Recuperar datos del usuario desde Firestore
+      final userData = await _userService.getUserData();
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => InicioPage(
+              // Puedes pasar userData si lo necesitas en InicioPage
+            ),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
+      String msg = 'Error al iniciar sesión';
+      if (e.code == 'user-not-found') {
+        msg = 'Usuario no encontrado';
+      } else if (e.code == 'wrong-password') {
+        msg = 'Contraseña incorrecta';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _resetPassword() async {
-    if (_emailController.text.isEmpty) {
-      setState(() {
-        _error = "Ingresa tu correo para recuperar la contraseña";
-      });
+  void _resetPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa tu correo para recuperar la contraseña'),
+        ),
+      );
       return;
     }
     try {
-      await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      await authService.value.resetPassword(
+        email: _emailController.text.trim(),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Correo de recuperación enviado')),
       );
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _error = e.message;
-      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar Sesión')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Correo electrónico',
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Contraseña'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 16),
-            _loading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _login,
-                    child: const Text('Iniciar Sesión'),
+      appBar: AppBar(title: const Text('Iniciar sesión')),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                const Text(
+                  'Bienvenido a PokeDesk',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo electrónico',
+                    prefixIcon: Icon(Icons.email),
                   ),
-            TextButton(
-              onPressed: _resetPassword,
-              child: const Text('¿Olvidaste tu contraseña?'),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Ingresa tu correo'
+                      : null,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Ingresa tu contraseña'
+                      : null,
+                ),
+                const SizedBox(height: 24),
+                _loading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _login,
+                        child: const Text('Iniciar sesión'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                      ),
+                TextButton(
+                  onPressed: _resetPassword,
+                  child: const Text('¿Olvidaste tu contraseña?'),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('¿No tienes cuenta?'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Regístrate'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const RegisterPage()),
-                );
-              },
-              child: const Text('¿No tienes cuenta? Regístrate'),
-            ),
-          ],
+          ),
         ),
       ),
     );

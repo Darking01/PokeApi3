@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_login.dart';
+import '../services/firestore_service.dart';
 import 'login.dart';
 import 'account_option.dart';
 
@@ -19,15 +20,28 @@ class _PerfilPageState extends State<PerfilPage> {
   File? _imageFile;
   bool _loading = false;
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
+  String _username = '';
+  String _email = '';
+  String? _photoUrl;
+  int _favoritosCount = 0;
+
+  final UserFirestoreService _userService = UserFirestoreService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final data = await _userService.getUserData();
+    if (data != null) {
       setState(() {
-        _imageFile = File(picked.path);
+        _username = data['username'] ?? '';
+        _email = data['email'] ?? '';
+        _photoUrl = data['photoUrl'];
+        _favoritosCount = data['favoritosCount'] ?? 0;
       });
-      // Aquí podrías subir la imagen a Firebase Storage y actualizar el photoURL
-      // await user?.updatePhotoURL(urlDeFirebaseStorage);
     }
   }
 
@@ -44,9 +58,11 @@ class _PerfilPageState extends State<PerfilPage> {
 
   @override
   Widget build(BuildContext context) {
-    final photoUrl = user?.photoURL;
-    final displayName = user?.displayName ?? 'Sin nombre';
-    final email = user?.email ?? 'Sin correo';
+    final displayName = _username.isNotEmpty
+        ? _username
+        : (user?.displayName ?? 'Sin nombre');
+    final email = _email.isNotEmpty ? _email : (user?.email ?? 'Sin correo');
+    final photoUrl = _photoUrl;
 
     return Scaffold(
       appBar: AppBar(
@@ -64,29 +80,14 @@ class _PerfilPageState extends State<PerfilPage> {
           child: Column(
             children: [
               const SizedBox(height: 24),
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundImage: _imageFile != null
-                        ? FileImage(_imageFile!)
-                        : (photoUrl != null ? NetworkImage(photoUrl) : null)
-                              as ImageProvider<Object>?,
-                    child: (photoUrl == null && _imageFile == null)
-                        ? const Icon(Icons.person, size: 60)
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 4,
-                    child: IconButton(
-                      icon: const Icon(Icons.camera_alt, color: Colors.blue),
-                      onPressed: _pickImage,
-                      tooltip: 'Cambiar imagen',
-                    ),
-                  ),
-                ],
+              CircleAvatar(
+                radius: 60,
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: (photoUrl == null)
+                    ? const Icon(Icons.person, size: 60)
+                    : null,
               ),
               const SizedBox(height: 24),
               Text(
@@ -114,9 +115,8 @@ class _PerfilPageState extends State<PerfilPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => AccountOptionPage(
-                        favoritosCount: widget.favoritosCount,
-                      ),
+                      builder: (context) =>
+                          AccountOptionPage(favoritosCount: _favoritosCount),
                     ),
                   );
                 },
@@ -128,7 +128,7 @@ class _PerfilPageState extends State<PerfilPage> {
                   leading: const Icon(Icons.favorite, color: Colors.red),
                   title: const Text('Pokemones favoritos'),
                   trailing: Text(
-                    widget.favoritosCount.toString(),
+                    _favoritosCount.toString(),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,

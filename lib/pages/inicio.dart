@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/poke_services.dart';
+import '../services/firestore_service.dart';
 import 'favoritos.dart';
 import 'detalles.dart';
 import 'perfil.dart';
+import 'login.dart';
 
 class InicioPage extends StatefulWidget {
   const InicioPage({Key? key}) : super(key: key);
@@ -18,12 +20,14 @@ class _InicioPageState extends State<InicioPage>
   int _notificaciones = 0;
   List<Map<String, dynamic>>? _pokemonsCache;
   String _search = '';
+  final UserFirestoreService _userService = UserFirestoreService();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadPokemons();
+    _loadFavoritos();
   }
 
   Future<void> _loadPokemons() async {
@@ -34,32 +38,32 @@ class _InicioPageState extends State<InicioPage>
     });
   }
 
-  void _toggleFavorito(String name) {
+  Future<void> _loadFavoritos() async {
+    final favoritos = await _userService.getFavoritos();
+    if (!mounted) return;
     setState(() {
-      if (_favoritos.contains(name)) {
-        _favoritos.remove(name);
-        _notificaciones++;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Eliminado de favoritos')));
-      } else {
-        _favoritos.add(name);
-        _notificaciones++;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Agregado a favoritos')));
-      }
+      _favoritos = favoritos.toSet();
     });
   }
 
-  void _removeFavorito(String name) {
+  void _toggleFavorito(String name) async {
+    setState(() {
+      if (_favoritos.contains(name)) {
+        _favoritos.remove(name);
+      } else {
+        _favoritos.add(name);
+      }
+      _notificaciones++;
+    });
+    await _userService.updateFavoritos(_favoritos.toList());
+  }
+
+  void _removeFavorito(String name) async {
     setState(() {
       _favoritos.remove(name);
       _notificaciones++;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Eliminado de favoritos')));
     });
+    await _userService.updateFavoritos(_favoritos.toList());
   }
 
   Drawer buildAppDrawer(BuildContext context) {
@@ -111,9 +115,9 @@ class _InicioPageState extends State<InicioPage>
             title: const Text('Cerrar sesión'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamedAndRemoveUntil(
+              Navigator.pushAndRemoveUntil(
                 context,
-                '/login',
+                MaterialPageRoute(builder: (context) => const LoginPage()),
                 (route) => false,
               );
             },
@@ -123,6 +127,7 @@ class _InicioPageState extends State<InicioPage>
     );
   }
 
+  @override
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: const Text('PokeDesk'),
