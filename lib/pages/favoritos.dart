@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import '../utility/poke_card.dart';
+import 'detalles.dart';
 
 class FavoritosScreen extends StatelessWidget {
   final List<Map<String, dynamic>> favoritos;
   final Function(String) onRemove;
+  final Function(Map<String, dynamic>)? onTap; // <-- Añade esto
 
   const FavoritosScreen({
     Key? key,
     required this.favoritos,
     required this.onRemove,
+    this.onTap, // <-- Añade esto
   }) : super(key: key);
 
   @override
@@ -28,42 +32,12 @@ class FavoritosScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final pokemon = favoritos[index];
 
-        return Card(
-          elevation: 4.0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Stack(
-            children: [
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (pokemon['image'] != null)
-                      Image.network(
-                        pokemon['image'],
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.contain,
-                      ),
-                    const SizedBox(height: 12),
-                    Text(
-                      pokemon['name'].toString().toUpperCase(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => onRemove(pokemon['name']),
-                ),
-              ),
-            ],
-          ),
+        return PokemonCard(
+          pokemon: pokemon,
+          onDeleteTap: () => onRemove(pokemon['name']),
+          onTap: onTap != null
+              ? () => onTap!(pokemon)
+              : null, // <-- Usa el callback recibido
         );
       },
     );

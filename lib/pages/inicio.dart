@@ -5,6 +5,8 @@ import 'favoritos.dart';
 import 'detalles.dart';
 import 'perfil.dart';
 import 'login.dart';
+import '../utility/poke_card.dart';
+import 'setting.dart';
 
 class InicioPage extends StatefulWidget {
   const InicioPage({Key? key}) : super(key: key);
@@ -110,7 +112,7 @@ class _InicioPageState extends State<InicioPage>
 
   Drawer buildAppDrawer(BuildContext context) {
     return Drawer(
-      child: ListView(
+      child: Column(
         children: [
           DrawerHeader(
             decoration: const BoxDecoration(color: Colors.redAccent),
@@ -141,22 +143,6 @@ class _InicioPageState extends State<InicioPage>
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Inicio'),
-            onTap: () {
-              Navigator.pop(context);
-              _tabController.animateTo(0);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Favoritos'),
-            onTap: () {
-              Navigator.pop(context);
-              _tabController.animateTo(1);
-            },
-          ),
-          ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Perfil'),
             onTap: () {
@@ -174,6 +160,34 @@ class _InicioPageState extends State<InicioPage>
               });
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Inicio'),
+            onTap: () {
+              Navigator.pop(context);
+              _tabController.animateTo(0);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: const Text('Favoritos'),
+            onTap: () {
+              Navigator.pop(context);
+              _tabController.animateTo(1);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Setting'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingPage()),
+              );
+            },
+          ),
+          const Spacer(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
@@ -313,7 +327,9 @@ class _InicioPageState extends State<InicioPage>
               }
               final pokemon = filtered[index];
               final isFavorito = _favoritos.contains(pokemon['name']);
-              return GestureDetector(
+              return PokemonCard(
+                pokemon: pokemon,
+                isFavorito: isFavorito,
                 onTap: () {
                   showDialog(
                     context: context,
@@ -359,48 +375,7 @@ class _InicioPageState extends State<InicioPage>
                     ),
                   );
                 },
-                child: Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (pokemon['image'] != null)
-                              Image.network(
-                                pokemon['image'],
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.contain,
-                              ),
-                            const SizedBox(height: 12),
-                            Text(
-                              pokemon['name'].toString().toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.favorite,
-                            color: isFavorito ? Colors.red : Colors.grey,
-                          ),
-                          onPressed: () => _toggleFavorito(pokemon['name']),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                onFavoriteTap: () => _toggleFavorito(pokemon['name']),
               );
             },
           ),
@@ -423,6 +398,51 @@ class _InicioPageState extends State<InicioPage>
                 .where((poke) => _favoritos.contains(poke['name']))
                 .toList(),
             onRemove: _removeFavorito,
+            onTap: (pokemon) {
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: Text(pokemon['name'].toString().toUpperCase()),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (pokemon['image'] != null)
+                        Image.network(
+                          pokemon['image'],
+                          width: 140,
+                          height: 140,
+                          fit: BoxFit.contain,
+                        ),
+                      const SizedBox(height: 16),
+                      const Text('¡Un pokémon salvaje ha aparecido!'),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Atrás'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context); // Cierra el diálogo
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DetallesPage(pokemonName: pokemon['name']),
+                          ),
+                        );
+                        if (result == true) {
+                          await _loadFavoritos();
+                          setState(() {});
+                        }
+                      },
+                      child: const Text('Ver estadística'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

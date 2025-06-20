@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/poke_services.dart';
 import '../services/firestore_service.dart';
+import '../utility/poke_stat_bar.dart';
 
 class DetallesPage extends StatefulWidget {
   final String pokemonName;
@@ -252,40 +253,11 @@ class _DetallesPageState extends State<DetallesPage> {
                         DetallesPage.statIcons[statName] ?? Icons.bar_chart;
                     final color =
                         DetallesPage.statColors[statName] ?? Colors.blueGrey;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: Row(
-                        children: [
-                          Icon(icon, color: color),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 110,
-                            child: Text(
-                              statName.toUpperCase(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: color,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: LinearProgressIndicator(
-                              value: baseStat / 200,
-                              minHeight: 12,
-                              backgroundColor: color.withOpacity(0.2),
-                              color: color,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            baseStat.toString(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                        ],
-                      ),
+                    return PokeStatBar(
+                      statName: statName,
+                      baseStat: baseStat,
+                      icon: icon,
+                      color: color,
                     );
                   }),
                 ),
