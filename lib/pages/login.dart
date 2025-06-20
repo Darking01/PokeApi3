@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => InicioPage()),
+          MaterialPageRoute(builder: (context) => const InicioPage()),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -54,29 +54,6 @@ class _LoginPageState extends State<LoginPage> {
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _resetPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ingresa tu correo para recuperar la contraseña'),
-        ),
-      );
-      return;
-    }
-    try {
-      await authService.value.resetPassword(
-        email: _emailController.text.trim(),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Correo de recuperación enviado')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -107,6 +84,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -119,26 +98,31 @@ class _LoginPageState extends State<LoginPage> {
           Align(
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: EdgeInsets.fromLTRB(
+                  screenWidth * 0.06, 0, screenWidth * 0.06, screenWidth * 0.06),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Imagen de título casi pegada arriba
-                  Image.asset(AppImages.title, width: 240, fit: BoxFit.contain),
-                  const SizedBox(height: 8),
+                  Image.asset(
+                    AppImages.title,
+                    width: screenWidth * 0.6,
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(height: screenWidth * 0.02),
                   // Imagen de entrenadores
                   Image.asset(
                     AppImages.entrenadores,
-                    width: 200,
+                    width: screenWidth * 0.5,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: screenWidth * 0.06),
                   Form(
                     key: _formKey,
                     child: Column(
                       children: [
                         Container(
-                          margin: const EdgeInsets.only(bottom: 14),
+                          margin: EdgeInsets.only(bottom: screenWidth * 0.03),
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
@@ -162,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         Container(
-                          margin: const EdgeInsets.only(bottom: 14),
+                          margin: EdgeInsets.only(bottom: screenWidth * 0.03),
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
@@ -185,27 +169,20 @@ class _LoginPageState extends State<LoginPage> {
                                 : null,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: screenWidth * 0.02),
                         _loading
                             ? const CustomLoader(message: 'Iniciando sesión...')
                             : ElevatedButton(
                                 onPressed: _login,
                                 child: const Text('Iniciar sesión'),
                                 style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 48),
+                                  minimumSize: Size(double.infinity, screenWidth * 0.12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                 ),
                               ),
-                        // Puedes descomentar si quieres el botón de recuperar contraseña
-                        /*
-                        TextButton(
-                          onPressed: _resetPassword,
-                          child: const Text('¿Olvidaste tu contraseña?'),
-                        ),
-                        */
-                        const SizedBox(height: 8),
+                        SizedBox(height: screenWidth * 0.02),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -234,7 +211,11 @@ class _LoginPageState extends State<LoginPage> {
           Positioned(
             bottom: 0,
             right: 0,
-            child: Image.asset(AppImages.pikaSaludo, width: 180, height: 180),
+            child: Image.asset(
+              AppImages.pikaSaludo,
+              width: screenWidth * 0.35,
+              height: screenWidth * 0.35,
+            ),
           ),
         ],
       ),

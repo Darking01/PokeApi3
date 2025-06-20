@@ -95,6 +95,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -113,30 +115,35 @@ class _RegisterPageState extends State<RegisterPage> {
           Align(
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: EdgeInsets.fromLTRB(
+                  screenWidth * 0.06, 0, screenWidth * 0.06, screenWidth * 0.06),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Imagen de título casi pegada arriba
-                  Image.asset(AppImages.title, width: 240, fit: BoxFit.contain),
-                  const SizedBox(height: 8),
+                  Image.asset(
+                    AppImages.title,
+                    width: screenWidth * 0.6,
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(height: screenWidth * 0.02),
                   // Imagen de entrenadores
                   Image.asset(
                     AppImages.entrenadores,
-                    width: 200,
+                    width: screenWidth * 0.5,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: screenWidth * 0.06),
                   Form(
                     key: _formKey,
                     child: Column(
                       children: [
                         Container(
-                          margin: const EdgeInsets.only(bottom: 14),
+                          margin: EdgeInsets.only(bottom: screenWidth * 0.03),
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
+                                color: Colors.black,
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -155,11 +162,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         Container(
-                          margin: const EdgeInsets.only(bottom: 14),
+                          margin: EdgeInsets.only(bottom: screenWidth * 0.03),
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
+                                color: Colors.black,
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -179,11 +186,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         Container(
-                          margin: const EdgeInsets.only(bottom: 14),
+                          margin: EdgeInsets.only(bottom: screenWidth * 0.03),
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
+                                color: Colors.black,
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -199,24 +206,24 @@ class _RegisterPageState extends State<RegisterPage> {
                             obscureText: true,
                             validator: (value) =>
                                 value == null || value.length < 6
-                                ? 'Mínimo 6 caracteres'
-                                : null,
+                                    ? 'Mínimo 6 caracteres'
+                                    : null,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: screenWidth * 0.02),
                         _loading
                             ? const CustomLoader(message: 'Registrando...')
                             : ElevatedButton(
                                 onPressed: _register,
                                 child: const Text('Registrarse'),
                                 style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 48),
+                                  minimumSize: Size(double.infinity, screenWidth * 0.12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                 ),
                               ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: screenWidth * 0.02),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -245,7 +252,11 @@ class _RegisterPageState extends State<RegisterPage> {
           Positioned(
             bottom: 0,
             right: 0,
-            child: Image.asset(AppImages.pikaSaludo, width: 180, height: 180),
+            child: Image.asset(
+              AppImages.pikaSaludo,
+              width: screenWidth * 0.35,
+              height: screenWidth * 0.35,
+            ),
           ),
         ],
       ),

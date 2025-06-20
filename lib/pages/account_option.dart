@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
 import 'perfil.dart';
 import 'login.dart';
-import '../utility/custom_loader.dart'; // <-- Importa tu loader
+import '../utility/custom_loader.dart';
 
 String getRandomPokemonImageUrl() {
   final random = Random();
@@ -17,7 +19,7 @@ String getRandomPokemonImageUrl() {
 class AccountOptionPage extends StatefulWidget {
   final int favoritosCount;
   const AccountOptionPage({Key? key, this.favoritosCount = 0})
-    : super(key: key);
+      : super(key: key);
 
   @override
   State<AccountOptionPage> createState() => _AccountOptionPageState();
@@ -32,8 +34,30 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
   User? user = FirebaseAuth.instance.currentUser;
   bool _loading = false;
   String? _photoUrl;
+  Color _typeColor = Colors.grey.shade300;
 
   final UserFirestoreService _userService = UserFirestoreService();
+
+  static const Map<String, Color> typeBgColors = {
+    'normal': Color(0xFFA8A77A),
+    'fire': Color(0xFFEE8130),
+    'water': Color(0xFF6390F0),
+    'electric': Color(0xFFF7D02C),
+    'grass': Color(0xFF7AC74C),
+    'ice': Color(0xFF96D9D6),
+    'fighting': Color(0xFFC22E28),
+    'poison': Color(0xFFA33EA1),
+    'ground': Color(0xFFE2BF65),
+    'flying': Color(0xFFA98FF3),
+    'psychic': Color(0xFFF95587),
+    'bug': Color(0xFFA6B91A),
+    'rock': Color(0xFFB6A136),
+    'ghost': Color(0xFF735797),
+    'dragon': Color(0xFF6F35FC),
+    'dark': Color(0xFF705746),
+    'steel': Color(0xFFB7B7CE),
+    'fairy': Color(0xFFD685AD),
+  };
 
   @override
   void initState() {
@@ -47,17 +71,44 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
     setState(() => _loading = true);
     final data = await _userService.getUserData();
     if (data != null && data['photoUrl'] != null) {
-      setState(() {
-        _photoUrl = data['photoUrl'];
-      });
+      _photoUrl = data['photoUrl'];
+      await _loadTypeColor(_photoUrl);
     }
     setState(() => _loading = false);
   }
 
-  void _setRandomPokemonAvatar() {
+  Future<void> _loadTypeColor(String? photoUrl) async {
+    if (photoUrl == null) {
+      setState(() => _typeColor = Colors.grey.shade300);
+      return;
+    }
+    final regex = RegExp(r'/(\d+)\.png');
+    final match = regex.firstMatch(photoUrl);
+    if (match != null) {
+      final pokeId = match.group(1);
+      final response = await http.get(
+        Uri.parse('https://pokeapi.co/api/v2/pokemon/$pokeId'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final types = data['types'] as List;
+        if (types.isNotEmpty) {
+          final type = types[0]['type']['name'];
+          setState(() {
+            _typeColor = typeBgColors[type] ?? Colors.grey.shade300;
+          });
+          return;
+        }
+      }
+    }
+    setState(() => _typeColor = Colors.grey.shade300);
+  }
+
+  void _setRandomPokemonAvatar() async {
     setState(() {
       _photoUrl = getRandomPokemonImageUrl();
     });
+    await _loadTypeColor(_photoUrl);
   }
 
   Future<void> _saveChanges() async {
@@ -205,12 +256,22 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
                       Stack(
                         alignment: Alignment.bottomRight,
                         children: [
-                          CircleAvatar(
-                            radius: 60,
-                            backgroundImage: displayImage,
-                            child: (displayImage == null)
-                                ? const Icon(Icons.person, size: 60)
-                                : null,
+                          // Avatar grande con fondo de color según tipo
+                          Container(
+                            width: 170,
+                            height: 170,
+                            decoration: BoxDecoration(
+                              color: _typeColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: CircleAvatar(
+                              radius: 80,
+                              backgroundImage: displayImage,
+                              child: (displayImage == null)
+                                  ? const Icon(Icons.person, size: 80)
+                                  : null,
+                              backgroundColor: Colors.transparent,
+                            ),
                           ),
                           Positioned(
                             bottom: 0,
@@ -235,14 +296,13 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Correo solo lectura
                       TextField(
                         controller: _emailController,
                         decoration: const InputDecoration(
                           labelText: 'Correo electrónico',
                           prefixIcon: Icon(Icons.email),
                         ),
-                        enabled: false, // <-- Solo lectura
+                        enabled: false,
                       ),
                       const SizedBox(height: 16),
                       TextField(

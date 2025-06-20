@@ -21,12 +21,16 @@ class FavoritosScreen extends StatelessWidget {
       return const Center(child: Text('No tienes favoritos aún.'));
     }
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = screenWidth > 600 ? 4 : 2;
+    final double imageSize = screenWidth / (crossAxisCount * 1.2);
+
     return GridView.builder(
-      padding: const EdgeInsets.all(16.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+      padding: EdgeInsets.all(screenWidth * 0.04),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: screenWidth * 0.04,
+        mainAxisSpacing: screenWidth * 0.04,
         childAspectRatio: 1,
       ),
       itemCount: favoritos.length,
@@ -35,11 +39,11 @@ class FavoritosScreen extends StatelessWidget {
 
         return PokemonCard(
           pokemon: pokemon,
+          imageSize: imageSize, // <-- Nuevo parámetro para tamaño relativo
           onDeleteTap: () => onRemove(pokemon['name']),
           onTap: onTap != null
               ? () => onTap!(pokemon)
               : () {
-                  // Si no se pasa onTap, muestra detalles por defecto
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -50,11 +54,11 @@ class FavoritosScreen extends StatelessWidget {
                           if (pokemon['image'] != null)
                             Image.network(
                               pokemon['image'],
-                              width: 140,
-                              height: 140,
+                              width: imageSize,
+                              height: imageSize,
                               fit: BoxFit.contain,
                             ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: screenWidth * 0.04),
                           const Text('¡Un pokémon salvaje ha aparecido!'),
                         ],
                       ),
@@ -65,7 +69,7 @@ class FavoritosScreen extends StatelessWidget {
                         ),
                         ElevatedButton(
                           onPressed: () async {
-                            Navigator.pop(context); // Cierra el diálogo
+                            Navigator.pop(context);
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
