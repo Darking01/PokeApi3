@@ -6,6 +6,7 @@ import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
 import 'perfil.dart';
 import 'login.dart';
+import '../utility/custom_loader.dart'; // <-- Importa tu loader
 
 String getRandomPokemonImageUrl() {
   final random = Random();
@@ -43,12 +44,14 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
   }
 
   Future<void> _loadFirestoreData() async {
+    setState(() => _loading = true);
     final data = await _userService.getUserData();
     if (data != null && data['photoUrl'] != null) {
       setState(() {
         _photoUrl = data['photoUrl'];
       });
     }
+    setState(() => _loading = false);
   }
 
   void _setRandomPokemonAvatar() {
@@ -164,7 +167,6 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
               (route) => false,
             );
           }
-          // No muestres SnackBar aquí, el contexto ya no existe
           return;
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -192,71 +194,76 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Actualizar datos')),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0),
-            child: Column(
-              children: [
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundImage: displayImage,
-                      child: (displayImage == null)
-                          ? const Icon(Icons.person, size: 60)
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 4,
-                      child: IconButton(
-                        icon: const Icon(Icons.casino, color: Colors.blue),
-                        onPressed: _setRandomPokemonAvatar,
-                        tooltip: 'Avatar aleatorio',
+      body: _loading
+          ? const CustomLoader(message: 'Cargando...')
+          : Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  child: Column(
+                    children: [
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundImage: displayImage,
+                            child: (displayImage == null)
+                                ? const Icon(Icons.person, size: 60)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 4,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.casino,
+                                color: Colors.blue,
+                              ),
+                              onPressed: _setRandomPokemonAvatar,
+                              tooltip: 'Avatar aleatorio',
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de usuario',
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _currentPassController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña actual',
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _newPassController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nueva contraseña',
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 32),
-                _loading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton.icon(
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre de usuario',
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Correo solo lectura
+                      TextField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Correo electrónico',
+                          prefixIcon: Icon(Icons.email),
+                        ),
+                        enabled: false, // <-- Solo lectura
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _currentPassController,
+                        decoration: const InputDecoration(
+                          labelText: 'Contraseña actual',
+                          prefixIcon: Icon(Icons.lock),
+                        ),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _newPassController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nueva contraseña',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
                         onPressed: _saveChanges,
                         icon: const Icon(Icons.save),
                         label: const Text('Guardar cambios'),
@@ -266,11 +273,11 @@ class _AccountOptionPageState extends State<AccountOptionPage> {
                           minimumSize: const Size(180, 48),
                         ),
                       ),
-              ],
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

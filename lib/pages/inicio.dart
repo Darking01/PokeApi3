@@ -7,6 +7,8 @@ import 'perfil.dart';
 import 'login.dart';
 import '../utility/poke_card.dart';
 import 'setting.dart';
+import '../utility/image_ui.dart';
+import '../utility/custom_loader.dart';
 
 class InicioPage extends StatefulWidget {
   const InicioPage({Key? key}) : super(key: key);
@@ -33,15 +35,22 @@ class _InicioPageState extends State<InicioPage>
   final int _pageSize = 20;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  bool _isInitialLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadMorePokemons();
-    _loadFavoritos();
-    _loadProfileData();
+    _loadInitialData();
     _scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() => _isInitialLoading = true);
+    await _loadMorePokemons();
+    await _loadFavoritos();
+    await _loadProfileData();
+    setState(() => _isInitialLoading = false);
   }
 
   @override
@@ -112,96 +121,160 @@ class _InicioPageState extends State<InicioPage>
 
   Drawer buildAppDrawer(BuildContext context) {
     return Drawer(
-      child: Column(
+      child: Stack(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.redAccent),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: _photoUrl != null
-                      ? NetworkImage(_photoUrl!)
-                      : null,
-                  child: _photoUrl == null
-                      ? const Icon(Icons.person, size: 40, color: Colors.white)
-                      : null,
-                  backgroundColor: Colors.white,
+          // Fondo del Drawer
+          Positioned.fill(
+            child: Image.asset(AppImages.menu, fit: BoxFit.cover),
+          ),
+          // Contenido del Drawer
+          Column(
+            children: [
+              const SizedBox(height: 32),
+              // Imagen de perfil y nombre más grandes y estéticos
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  _username ?? '',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Perfil'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      PerfilPage(favoritosCount: _favoritos.length),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundImage: _photoUrl != null
+                          ? NetworkImage(_photoUrl!)
+                          : null,
+                      child: _photoUrl == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 48,
+                              color: Colors.white,
+                            )
+                          : null,
+                      backgroundColor: Colors.white,
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Text(
+                        _username ?? '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              blurRadius: 4,
+                              offset: Offset(1, 2),
+                            ),
+                          ],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-              ).then((value) async {
-                await _loadProfileData();
-                if (!mounted) return;
-                setState(() {});
-              });
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Inicio'),
-            onTap: () {
-              Navigator.pop(context);
-              _tabController.animateTo(0);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.favorite),
-            title: const Text('Favoritos'),
-            onTap: () {
-              Navigator.pop(context);
-              _tabController.animateTo(1);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Setting'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingPage()),
-              );
-            },
-          ),
-          const Spacer(),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Cerrar sesión'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
-              );
-            },
+              ),
+              const SizedBox(height: 12),
+              // Botones con fondo semitransparente
+              _drawerButton(
+                icon: Icons.person,
+                label: 'Perfil',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          PerfilPage(favoritosCount: _favoritos.length),
+                    ),
+                  ).then((value) async {
+                    await _loadProfileData();
+                    if (!mounted) return;
+                    setState(() {});
+                  });
+                },
+              ),
+              _drawerButton(
+                icon: Icons.home,
+                label: 'Inicio',
+                onTap: () {
+                  Navigator.pop(context);
+                  _tabController.animateTo(0);
+                },
+              ),
+              _drawerButton(
+                icon: Icons.favorite,
+                label: 'Favoritos',
+                onTap: () {
+                  Navigator.pop(context);
+                  _tabController.animateTo(1);
+                },
+              ),
+              _drawerButton(
+                icon: Icons.settings,
+                label: 'Setting',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingPage(),
+                    ),
+                  );
+                },
+              ),
+              const Spacer(),
+              const Divider(color: Colors.white70),
+              _drawerButton(
+                icon: Icons.logout,
+                label: 'Cerrar sesión',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    (route) => false,
+                  );
+                },
+                color: Colors.redAccent.withOpacity(0.8),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  // Botón personalizado para el Drawer
+  Widget _drawerButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: color ?? Colors.black.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.white),
+        title: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        onTap: onTap,
       ),
     );
   }
@@ -287,8 +360,8 @@ class _InicioPageState extends State<InicioPage>
   }
 
   Widget _buildPokemones() {
-    if (_pokemonsCache.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+    if (_isInitialLoading) {
+      return const CustomLoader(message: 'Cargando pokemones...');
     }
     final filtered = _pokemonsCache
         .where(
@@ -323,7 +396,7 @@ class _InicioPageState extends State<InicioPage>
             itemCount: filtered.length + (_isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= filtered.length) {
-                return const Center(child: CircularProgressIndicator());
+                return const CustomLoader(message: 'Cargando más...');
               }
               final pokemon = filtered[index];
               final isFavorito = _favoritos.contains(pokemon['name']);

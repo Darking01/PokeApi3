@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
-import '../services/poke_services.dart'; // Importa aquí tu función random
-
+import '../services/poke_services.dart';
 import 'inicio.dart';
 import 'login.dart';
+import '../utility/image_ui.dart';
+import '../utility/custom_loader.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -40,7 +41,7 @@ class _RegisterPageState extends State<RegisterPage> {
       await _userService.saveUserData(
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
-        photoUrl: getRandomPokemonImageUrl(), // Usa la función de poke_services
+        photoUrl: getRandomPokemonImageUrl(),
         favoritosCount: 0,
       );
 
@@ -67,88 +68,186 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.primary,
+          width: 2,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Text(
-                  'Crea tu cuenta',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de usuario',
-                    prefixIcon: Icon(Icons.person),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fondo de pantalla
+          Image.asset(AppImages.login, fit: BoxFit.cover),
+          // Capa semitransparente opcional para oscurecer el fondo
+          Container(color: Colors.black.withOpacity(0.3)),
+          // Contenido principal muy arriba
+          Align(
+            alignment: Alignment.topCenter,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Imagen de título casi pegada arriba
+                  Image.asset(AppImages.title, width: 240, fit: BoxFit.contain),
+                  const SizedBox(height: 8),
+                  // Imagen de entrenadores
+                  Image.asset(
+                    AppImages.entrenadores,
+                    width: 200,
+                    fit: BoxFit.contain,
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Ingresa tu nombre de usuario'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Ingresa tu correo'
-                      : null,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña',
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                  validator: (value) => value == null || value.length < 6
-                      ? 'Mínimo 6 caracteres'
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                _loading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _register,
-                        child: const Text('Registrarse'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
-                      ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('¿Ya tienes cuenta?'),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginPage(),
+                  const SizedBox(height: 24),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                        );
-                      },
-                      child: const Text('Inicia sesión'),
+                          child: TextFormField(
+                            controller: _usernameController,
+                            decoration: _inputDecoration(
+                              'Nombre de usuario',
+                              Icons.person,
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Ingresa tu nombre de usuario'
+                                : null,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: TextFormField(
+                            controller: _emailController,
+                            decoration: _inputDecoration(
+                              'Correo electrónico',
+                              Icons.email,
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Ingresa tu correo'
+                                : null,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: TextFormField(
+                            controller: _passwordController,
+                            decoration: _inputDecoration(
+                              'Contraseña',
+                              Icons.lock,
+                            ),
+                            obscureText: true,
+                            validator: (value) =>
+                                value == null || value.length < 6
+                                ? 'Mínimo 6 caracteres'
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _loading
+                            ? const CustomLoader(message: 'Registrando...')
+                            : ElevatedButton(
+                                onPressed: _register,
+                                child: const Text('Registrarse'),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 48),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                              ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('¿Ya tienes cuenta?'),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text('Inicia sesión'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+          // Pikachu saludo en la esquina inferior derecha, grande pero no tapa los botones
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Image.asset(AppImages.pikaSaludo, width: 180, height: 180),
+          ),
+        ],
       ),
     );
   }

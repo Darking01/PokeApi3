@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ThemeProvider extends ChangeNotifier {
   bool _isDarkMode = false;
-  MaterialColor _primaryColor = Colors.red;
+  Color _primaryColor = Colors.red;
   bool _autoColorByPokemon = false;
 
   static const Map<String, MaterialColor> typeColors = {
@@ -27,7 +27,7 @@ class ThemeProvider extends ChangeNotifier {
   };
 
   bool get isDarkMode => _isDarkMode;
-  MaterialColor get primaryColor => _primaryColor;
+  Color get primaryColor => _primaryColor;
   bool get autoColorByPokemon => _autoColorByPokemon;
 
   void toggleDarkMode(bool value) {
@@ -35,7 +35,7 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPrimaryColor(MaterialColor color) {
+  void setPrimaryColor(Color color) {
     _primaryColor = color;
     _autoColorByPokemon = false;
     notifyListeners();
@@ -48,6 +48,7 @@ class ThemeProvider extends ChangeNotifier {
 
   void setPrimaryColorByType(String type) {
     _primaryColor = typeColors[type] ?? Colors.red;
+    _autoColorByPokemon = true;
     notifyListeners();
   }
 }

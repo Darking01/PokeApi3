@@ -4,20 +4,11 @@ import '../utility/theme_provider.dart';
 import '../services/firestore_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../utility/custom_loader.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}) : super(key: key);
-
-  static const List<MaterialColor> colorOptions = [
-    Colors.red,
-    Colors.blue,
-    Colors.green,
-    Colors.purple,
-    Colors.orange,
-    Colors.teal,
-    Colors.pink,
-    Colors.indigo,
-  ];
 
   @override
   State<SettingPage> createState() => _SettingPageState();
@@ -35,12 +26,10 @@ class _SettingPageState extends State<SettingPage> {
     String? type;
 
     if (photoUrl != null) {
-      // Extrae el número de pokémon del URL
       final regex = RegExp(r'/(\d+)\.png');
       final match = regex.firstMatch(photoUrl);
       if (match != null) {
         final pokeId = match.group(1);
-        // Llama a la pokeapi para obtener el tipo
         final response = await http.get(
           Uri.parse('https://pokeapi.co/api/v2/pokemon/$pokeId'),
         );
@@ -82,6 +71,42 @@ class _SettingPageState extends State<SettingPage> {
     }
   }
 
+  void _showColorPicker(BuildContext context, ThemeProvider themeProvider) {
+    Color pickerColor = themeProvider.primaryColor;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Selecciona un color'),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: pickerColor,
+              onColorChanged: (color) {
+                pickerColor = color;
+              },
+              enableAlpha: false,
+              showLabel: true,
+              pickerAreaHeightPercent: 0.8,
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              child: const Text('Seleccionar'),
+              onPressed: () {
+                themeProvider.setPrimaryColor(pickerColor);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -103,26 +128,33 @@ class _SettingPageState extends State<SettingPage> {
               'Color principal',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            Wrap(
-              spacing: 12,
-              children: SettingPage.colorOptions.map((color) {
-                return ChoiceChip(
-                  label: Text(
-                    color.toString().split('.').last,
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _showColorPicker(context, themeProvider),
+              child: Container(
+                width: double.infinity,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: themeProvider.primaryColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: Center(
+                  child: Text(
+                    'Toca para elegir color',
                     style: TextStyle(
-                      color: themeProvider.primaryColor == color
+                      color:
+                          ThemeData.estimateBrightnessForColor(
+                                themeProvider.primaryColor,
+                              ) ==
+                              Brightness.dark
                           ? Colors.white
                           : Colors.black,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  selected: themeProvider.primaryColor == color,
-                  selectedColor: color,
-                  backgroundColor: color.shade100,
-                  onSelected: (_) {
-                    themeProvider.setPrimaryColor(color);
-                  },
-                );
-              }).toList(),
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             ListTile(
@@ -130,9 +162,9 @@ class _SettingPageState extends State<SettingPage> {
               title: const Text('Usar color según tu Pokémon de perfil'),
               trailing: _loadingType
                   ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      width: 48,
+                      height: 48,
+                      child: CustomLoader(message: ''),
                     )
                   : Switch(
                       value: themeProvider.autoColorByPokemon,

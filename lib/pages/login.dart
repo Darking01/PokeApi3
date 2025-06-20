@@ -4,6 +4,8 @@ import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
 import 'register.dart';
 import 'inicio.dart';
+import '../utility/image_ui.dart';
+import '../utility/custom_loader.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -35,11 +37,7 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => InicioPage(
-              // Puedes pasar userData si lo necesitas en InicioPage
-            ),
-          ),
+          MaterialPageRoute(builder: (context) => InicioPage()),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -82,81 +80,163 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.primary,
+          width: 2,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Text(
-                  'Bienvenido a PokeDesk',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fondo de pantalla
+          Image.asset(AppImages.login, fit: BoxFit.cover),
+          // Capa semitransparente opcional para oscurecer el fondo
+          Container(color: Colors.black.withOpacity(0.3)),
+          // Contenido principal muy arriba
+          Align(
+            alignment: Alignment.topCenter,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Imagen de título casi pegada arriba
+                  Image.asset(AppImages.title, width: 240, fit: BoxFit.contain),
+                  const SizedBox(height: 8),
+                  // Imagen de entrenadores
+                  Image.asset(
+                    AppImages.entrenadores,
+                    width: 200,
+                    fit: BoxFit.contain,
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Ingresa tu correo'
-                      : null,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contraseña',
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Ingresa tu contraseña'
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                _loading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _login,
-                        child: const Text('Iniciar sesión'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
-                      ),
-                TextButton(
-                  onPressed: _resetPassword,
-                  child: const Text('¿Olvidaste tu contraseña?'),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('¿No tienes cuenta?'),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterPage(),
+                  const SizedBox(height: 24),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(18),
                           ),
-                        );
-                      },
-                      child: const Text('Regístrate'),
+                          child: TextFormField(
+                            controller: _emailController,
+                            decoration: _inputDecoration(
+                              'Correo electrónico',
+                              Icons.email,
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Ingresa tu correo'
+                                : null,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.10),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: TextFormField(
+                            controller: _passwordController,
+                            decoration: _inputDecoration(
+                              'Contraseña',
+                              Icons.lock,
+                            ),
+                            obscureText: true,
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Ingresa tu contraseña'
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _loading
+                            ? const CustomLoader(message: 'Iniciando sesión...')
+                            : ElevatedButton(
+                                onPressed: _login,
+                                child: const Text('Iniciar sesión'),
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: const Size(double.infinity, 48),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                ),
+                              ),
+                        // Puedes descomentar si quieres el botón de recuperar contraseña
+                        /*
+                        TextButton(
+                          onPressed: _resetPassword,
+                          child: const Text('¿Olvidaste tu contraseña?'),
+                        ),
+                        */
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('¿No tienes cuenta?'),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const RegisterPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text('Regístrate'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+          // Pikachu saludo en la esquina inferior derecha, grande pero no tapa los botones
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Image.asset(AppImages.pikaSaludo, width: 180, height: 180),
+          ),
+        ],
       ),
     );
   }

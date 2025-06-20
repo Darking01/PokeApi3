@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'image_ui.dart';
 
 class PokemonCard extends StatelessWidget {
   final Map<String, dynamic> pokemon;
@@ -25,6 +26,14 @@ class PokemonCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Stack(
           children: [
+            // Fondo de carta
+            Positioned.fill(
+              child: Image.asset(
+                AppImages.cartaPokemon,
+                fit: BoxFit.cover,
+              ),
+            ),
+            // Imagen del Pokémon encima
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -37,9 +46,30 @@ class PokemonCard extends StatelessWidget {
                       fit: BoxFit.contain,
                     ),
                   const SizedBox(height: 12),
-                  Text(
-                    pokemon['name'].toString().toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  // Fondo semitransparente para el nombre
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      pokemon['name'].toString().toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black54,
+                            blurRadius: 4,
+                            offset: Offset(1, 2),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
               ),

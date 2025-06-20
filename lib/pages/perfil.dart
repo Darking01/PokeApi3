@@ -4,6 +4,7 @@ import '../services/auth_login.dart';
 import '../services/firestore_service.dart';
 import 'login.dart';
 import 'account_option.dart';
+import '../utility/custom_loader.dart';
 
 class PerfilPage extends StatefulWidget {
   final int favoritosCount;
@@ -31,6 +32,7 @@ class _PerfilPageState extends State<PerfilPage> {
   }
 
   Future<void> _loadUserData() async {
+    setState(() => _loading = true);
     final data = await _userService.getUserData();
     if (data != null) {
       setState(() {
@@ -38,13 +40,18 @@ class _PerfilPageState extends State<PerfilPage> {
         _email = data['email'] ?? '';
         _photoUrl = data['photoUrl'];
         _favoritosCount = data['favoritosCount'] ?? 0;
+        _loading = false;
       });
+    } else {
+      setState(() => _loading = false);
     }
   }
 
   Future<void> _logout() async {
+    setState(() => _loading = true);
     await authService.value.signOut();
     if (mounted) {
+      setState(() => _loading = false);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -72,75 +79,79 @@ class _PerfilPageState extends State<PerfilPage> {
           ),
         ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              CircleAvatar(
-                radius: 60,
-                backgroundImage: photoUrl != null
-                    ? NetworkImage(photoUrl)
-                    : null,
-                child: (photoUrl == null)
-                    ? const Icon(Icons.person, size: 60)
-                    : null,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                displayName,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                email,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.favorite, color: Colors.red),
-                  title: const Text('Pokemones favoritos'),
-                  trailing: Text(
-                    _favoritosCount.toString(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+      body: _loading
+          ? const CustomLoader(message: 'Cargando perfil...')
+          : Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 24),
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundImage: photoUrl != null
+                          ? NetworkImage(photoUrl)
+                          : null,
+                      child: (photoUrl == null)
+                          ? const Icon(Icons.person, size: 60)
+                          : null,
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.edit),
-                label: const Text('Actualizar datos'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(180, 48),
-                ),
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AccountOptionPage(favoritosCount: _favoritosCount),
+                    const SizedBox(height: 24),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                  if (result == true) {
-                    await _loadUserData();
-                    setState(() {});
-                  }
-                },
-              ),
-              const SizedBox(height: 24),
-              _loading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton.icon(
+                    const SizedBox(height: 8),
+                    Text(
+                      email,
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 24),
+                    Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 8,
+                      ),
+                      child: ListTile(
+                        leading: const Icon(Icons.favorite, color: Colors.red),
+                        title: const Text('Pokemones favoritos'),
+                        trailing: Text(
+                          _favoritosCount.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Actualizar datos'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(180, 48),
+                      ),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AccountOptionPage(
+                              favoritosCount: _favoritosCount,
+                            ),
+                          ),
+                        );
+                        if (result == true) {
+                          await _loadUserData();
+                          setState(() {});
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
                       onPressed: _logout,
                       icon: const Icon(Icons.logout),
                       label: const Text('Cerrar sesión'),
@@ -150,10 +161,10 @@ class _PerfilPageState extends State<PerfilPage> {
                         minimumSize: const Size(180, 48),
                       ),
                     ),
-            ],
-          ),
-        ),
-      ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }
