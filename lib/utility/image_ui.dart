@@ -1,5 +1,5 @@
 class AppImages {
-  // Imágenes generales
+  // Imagenes generales
   static const String entrenadores = 'assets/images/entrenadores.png';
   static const String login = 'assets/images/login.webp';
   static const String menu = 'assets/images/menu.jpg';

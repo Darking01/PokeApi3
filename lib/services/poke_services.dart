@@ -36,7 +36,7 @@ class PokemonService {
     }
   }
 
-  // NUEVO: Obtener detalles y estadísticas de un Pokémon por nombre
+  // Obtener detalles y estadísticas por nombre
   static Future<Map<String, dynamic>> fetchPokemonDetail(String name) async {
     final response = await http.get(
       Uri.parse('https://pokeapi.co/api/v2/pokemon/$name'),

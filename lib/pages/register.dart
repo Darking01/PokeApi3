@@ -116,7 +116,11 @@ class _RegisterPageState extends State<RegisterPage> {
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
-                  screenWidth * 0.06, 0, screenWidth * 0.06, screenWidth * 0.06),
+                screenWidth * 0.06,
+                0,
+                screenWidth * 0.06,
+                screenWidth * 0.06,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -206,8 +210,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             obscureText: true,
                             validator: (value) =>
                                 value == null || value.length < 6
-                                    ? 'Mínimo 6 caracteres'
-                                    : null,
+                                ? 'Mínimo 6 caracteres'
+                                : null,
                           ),
                         ),
                         SizedBox(height: screenWidth * 0.02),
@@ -217,7 +221,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                 onPressed: _register,
                                 child: const Text('Registrarse'),
                                 style: ElevatedButton.styleFrom(
-                                  minimumSize: Size(double.infinity, screenWidth * 0.12),
+                                  minimumSize: Size(
+                                    double.infinity,
+                                    screenWidth * 0.12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),

@@ -99,7 +99,11 @@ class _LoginPageState extends State<LoginPage> {
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
-                  screenWidth * 0.06, 0, screenWidth * 0.06, screenWidth * 0.06),
+                screenWidth * 0.06,
+                0,
+                screenWidth * 0.06,
+                screenWidth * 0.06,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -126,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
+                                color: Colors.black,
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -150,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                           decoration: BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.10),
+                                color: Colors.black,
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -176,7 +180,10 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: _login,
                                 child: const Text('Iniciar sesión'),
                                 style: ElevatedButton.styleFrom(
-                                  minimumSize: Size(double.infinity, screenWidth * 0.12),
+                                  minimumSize: Size(
+                                    double.infinity,
+                                    screenWidth * 0.12,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
